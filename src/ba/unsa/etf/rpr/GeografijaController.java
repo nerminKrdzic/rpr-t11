@@ -6,13 +6,25 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import net.sf.jasperreports.engine.JRException;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
-public class Geografija {
+public class GeografijaController {
 
     @FXML
     private
@@ -38,19 +50,22 @@ public class Geografija {
     @FXML
     private ListView ispisView;
 
+    @FXML
+    private BorderPane borderPane;
+
     private Drzava tekucaDrzavaPretraga = null;
 
     GeografijaDAO dao = GeografijaDAO.getInstance();
 
     @FXML
-    public void initialize(){
+    public void initialize() {
         nazivDrzavePretraga.editableProperty().setValue(false);
 
         nazivGradaPretraga.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                if(tekucaDrzavaPretraga == null) return;
-                if(newValue == null || newValue == ""){
+                if (tekucaDrzavaPretraga == null) return;
+                if (newValue == null || newValue == "") {
                     setPorukaPretraga("Morate unijeti naziv Grada");
                     setNazivGradaPretraga(tekucaDrzavaPretraga.getGlavniGrad().getNaziv());
                 }
@@ -63,8 +78,8 @@ public class Geografija {
         brojStanovnikaPretraga.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                if(tekucaDrzavaPretraga == null) return;
-                if(newValue == null || newValue == ""){
+                if (tekucaDrzavaPretraga == null) return;
+                if (newValue == null || newValue == "") {
                     setPorukaPretraga("Morate unijeti broj stanovnika");
                     setBrojStanovnikaPretraga(Integer.toString(tekucaDrzavaPretraga.getGlavniGrad().getBrojStanovnika()));
                 }
@@ -78,12 +93,12 @@ public class Geografija {
 
 
     public void nadjiDrzavuClicked(ActionEvent actionEvent) {
-        if(getNazivTextField().equals("")){
+        if (getNazivTextField().equals("")) {
             setPorukaPretraga("Unesite naziv drzave");
             return;
         }
         Drzava d = dao.nadjiDrzavu(getNazivTextField());
-        if(d == null) {
+        if (d == null) {
             setNazivDrzavePretraga("");
             setNazivGradaPretraga("");
             setBrojStanovnikaPretraga("");
@@ -100,7 +115,7 @@ public class Geografija {
     }
 
     public void dodajClicked(ActionEvent actionEvent) {
-        if(getNazivDrzaveDodavanje().isEmpty() || getNazivGradaDodavanje().isEmpty() || getBrojStanovnikaDodavanje().isEmpty()){
+        if (getNazivDrzaveDodavanje().isEmpty() || getNazivGradaDodavanje().isEmpty() || getBrojStanovnikaDodavanje().isEmpty()) {
             setPorukaDodavanje("Potrebno je da se popune sva polja");
             return;
         }
@@ -116,7 +131,7 @@ public class Geografija {
     }
 
     public void obrisiDrzavuClicked(ActionEvent actionEvent) {
-        if(getNazivDrzaveDodavanje() == null || getNazivDrzaveDodavanje().isEmpty()){
+        if (getNazivDrzaveDodavanje() == null || getNazivDrzaveDodavanje().isEmpty()) {
             setPorukaDodavanje("Morate unijeti naziv drzave");
             return;
         }
@@ -125,22 +140,59 @@ public class Geografija {
         setPorukaDodavanje("Drzava je obrisana");
     }
 
-    public void ispisi(){
+    public void ispisi() {
         ObservableList<String> gradovi = FXCollections.observableArrayList();
         ArrayList<Grad> gi = dao.gradovi();
-        for(Grad g: gi){
+        for (Grad g : gi) {
             gradovi.add(g.toString());
         }
         setIspisArea(gradovi);
+        Main.stampajGradove();
     }
 
+
+    private void selectLanguage(Locale locale) {
+        Stage primaryStage = (Stage) borderPane.getScene().getWindow();
+        Locale.setDefault(locale);
+        ResourceBundle bundle = ResourceBundle.getBundle("translation");
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/geografija.fxml"), bundle);
+        Parent root = null;
+        try {
+            root = loader.load();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
+        primaryStage.setScene(new Scene(root, 600, 410));
+        primaryStage.setMinWidth(600);
+        primaryStage.setMinHeight(450);
+        primaryStage.setMaxHeight(450);
+        primaryStage.setMaxWidth(600);
+        primaryStage.show();
+    }
+
+    public void bosanskiClicked(ActionEvent actionEvent) {
+        selectLanguage(new Locale("bs", "BA"));
+    }
+
+    public void engleskiClicked(ActionEvent actionEvent) {
+        selectLanguage(new Locale("en", "US"));
+    }
+
+    public void njemackiClicked(ActionEvent actionEvent) {
+        selectLanguage(new Locale("de", "DE"));
+    }
+
+    public void francuskiClicked(ActionEvent actionEvent) {
+        selectLanguage(new Locale("fr", "FR"));
+    }
 
 
     public String getNazivTextField() {
         return nazivTextField.textProperty().get();
     }
 
-    public void setNazivTextField(String value){
+    public void setNazivTextField(String value) {
         this.nazivTextField.textProperty().setValue(value);
     }
 
@@ -209,4 +261,41 @@ public class Geografija {
         this.ispisView.itemsProperty().setValue(value);
     }
 
+    private void doSave(File datoteka) {
+        try {
+            new GradoviReport().saveAs(datoteka.getAbsolutePath(), GeografijaDAO.getInstance().getConnection());
+        } catch (Exception e) {
+            System.out.println( e.getMessage() );
+        }
+    }
+
+    public void saveAs(ActionEvent event) {
+        FileChooser fc = new FileChooser();
+        FileChooser.ExtensionFilter xslmExtenizija = new FileChooser.ExtensionFilter("XSLX", "*.xslx");
+        fc.getExtensionFilters().add( xslmExtenizija );
+        FileChooser.ExtensionFilter docxExtenzija = new FileChooser.ExtensionFilter("DOCX", "*.docx");
+        fc.getExtensionFilters().add( docxExtenzija );
+        FileChooser.ExtensionFilter pdfExtenzija = new FileChooser.ExtensionFilter("PDF", "*.pdf");
+        fc.getExtensionFilters().add( pdfExtenzija );
+        fc.setTitle("SAVING A REPORT");
+        File selectedFile = fc.showSaveDialog(null);
+
+        //Ako ne odaberemo nista, nista se i ne desi.
+        if (selectedFile != null)
+            doSave(selectedFile);
+    }
+
+    @FXML
+    private TextField nazivDrzave;
+
+    public void ispisiZaDrzavu(ActionEvent event) {
+        if(nazivDrzave.textProperty().get().isEmpty()) return;
+        Drzava d = GeografijaDAO.getInstance().nadjiDrzavu(nazivDrzave.textProperty().get());
+        if(d == null) return;
+        try {
+            new GradoviReport().showForState(GeografijaDAO.getInstance().getConnection(), d);
+        } catch (JRException e1) {
+            e1.printStackTrace();
+        }
+    }
 }

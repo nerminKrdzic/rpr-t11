@@ -5,8 +5,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import net.sf.jasperreports.engine.JRException;
 
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.Scanner;
 
 public class Main extends Application {
@@ -19,6 +21,15 @@ public class Main extends Application {
         }
         return ispis;
     }
+
+    public static void stampajGradove() {
+        try {
+            new GradoviReport().showReport(GeografijaDAO.getInstance().getConnection());
+        } catch (JRException e1) {
+            e1.printStackTrace();
+        }
+    }
+
 
     public static void glavniGrad(){
         System.out.println("Unesite naziv drzave: ");
@@ -33,21 +44,22 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
-        //System.out.println("Gradovi su:\n" + ispisiGradove());
-        //glavniGrad();
+        /*stampajGradove(new ActionEvent());*/
 
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        Parent root = FXMLLoader.load(getClass().getResource("Geografija.fxml"));
-        primaryStage.setTitle("Tutorijal 9");
-        Scene scene = new Scene(root, 600, 360);
+        ResourceBundle bundle = ResourceBundle.getBundle("translation");
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/geografija.fxml"), bundle);
+        Parent root = loader.load();
+        primaryStage.setTitle("T10");
+        Scene scene = new Scene(root, 600, 410);
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(600);
         primaryStage.setMaxWidth(600);
-        primaryStage.setMinHeight(400);
-        primaryStage.setMaxHeight(400);
+        primaryStage.setMinHeight(450);
+        primaryStage.setMaxHeight(450);
         primaryStage.show();
     }
 }
